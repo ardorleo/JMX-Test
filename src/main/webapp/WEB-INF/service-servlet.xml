@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans default-init-method="init"
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:integration="http://www.springframework.org/schema/integration"
+    xmlns:integration-jmx="http://www.springframework.org/schema/integration/jmx"
+    xmlns:stream="http://www.springframework.org/schema/integration/stream"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd
+        http://www.springframework.org/schema/integration/jmx http://www.springframework.org/schema/integration/jmx/spring-integration-jmx.xsd
+        http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+    ">
+
+   <context:component-scan base-package="com"/>
+
+    <context:mbean-export />
+   
+   <!--  Tried integration-jmx as above context-mbean-export was not working. Actully I needn't want the interface implementation to be annotated with managementResource, attribute etc -->     
+   <integration-jmx:mbean-export default-domain="com.my.config"/>
+            
+    
+    <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
+        <property name="locateExistingServerIfPossible" value="true"></property>
+    </bean>
+   
+
+    <bean id="appConfigLocationMBean" class="org.springframework.jmx.access.MBeanProxyFactoryBean">
+        <property name="objectName" value="test:name=appLocationConfiguration,type=SpringAppLocationConfiguration,context=pjt001"/>
+        <property name="proxyInterface" value="com.my.config.app_loader.AppResourceLocationMBean"/>
+    </bean>
+    
+    <!-- Enabling below bean and disabling the above bean worked for me. But need a proxy interface solution. -->
+<!--     <bean id="appConfigLocationMBean" class="com.my.config.app_loader.AppResourceLocation"/>
+ -->       
+	
+    <bean id="appLoader" class="com.my.config.app_loader.AppLoader">
+        <property name="appLocationMBean" ref="appConfigLocationMBean" />
+    </bean>
+    
+     <bean id="mbeanExporter" class="org.springframework.jmx.export.MBeanExporter">
+        <property name="beans">
+          <map>
+		<!--  Used to add additional application contexts at runtime. --> 
+           <entry key="test:name=appLoader" value-ref="appLoader"/>
+          </map>
+        </property>
+
+    </bean>
+</beans>
